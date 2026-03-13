@@ -1,0 +1,98 @@
+{
+  "name": "local-agent",
+  "displayName": "Local Agent",
+  "description": "A local-first coding assistant shell for VS Code backed by Ollama.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.98.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:localAgent.chat",
+    "onCommand:localAgent.openChat",
+    "onCommand:localAgent.askSelection",
+    "onCommand:localAgent.askCurrentFile",
+    "onCommand:localAgent.askWorkspace"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "localAgent",
+          "title": "Local Agent",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "localAgent": [
+        {
+          "type": "webview",
+          "id": "localAgent.chat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "localAgent.openChat",
+        "title": "Local Agent: Open Chat",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.askSelection",
+        "title": "Local Agent: Ask About Selection",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.askCurrentFile",
+        "title": "Local Agent: Ask About Current File",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.askWorkspace",
+        "title": "Local Agent: Ask About Workspace",
+        "category": "Local Agent"
+      }
+    ],
+    "configuration": {
+      "title": "Local Agent",
+      "properties": {
+        "localAgent.ollamaBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Base URL for the local Ollama HTTP API."
+        },
+        "localAgent.model": {
+          "type": "string",
+          "default": "",
+          "description": "Preferred Ollama model name. Leave empty to use the first installed model."
+        },
+        "localAgent.editModel": {
+          "type": "string",
+          "default": "",
+          "description": "Preferred Ollama model for edit proposals. Leave empty to auto-pick a stronger coding model for edits."
+        },
+        "localAgent.allowTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow the Local Agent sidebar to prepare and run integrated terminal commands after explicit approval."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "@types/vscode": "^1.98.0",
+    "typescript": "^5.8.2"
+  }
+}
