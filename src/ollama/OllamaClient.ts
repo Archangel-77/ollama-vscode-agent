@@ -22,8 +22,10 @@ interface StreamChunk {
 export class OllamaClient {
   public constructor(private readonly baseUrl: string) {}
 
-  public async listModels(): Promise<string[]> {
-    const response = await fetch(this.url('/api/tags'));
+  public async listModels(signal?: AbortSignal): Promise<string[]> {
+    const response = await fetch(this.url('/api/tags'), {
+      signal
+    });
     if (!response.ok) {
       throw new Error(`Ollama returned ${response.status} ${response.statusText}.`);
     }
@@ -37,13 +39,15 @@ export class OllamaClient {
   public async streamChat(
     model: string,
     messages: ChatMessage[],
-    onChunk: (text: string) => Promise<void> | void
+    onChunk: (text: string) => Promise<void> | void,
+    signal?: AbortSignal
   ): Promise<void> {
     const response = await fetch(this.url('/api/chat'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
+      signal,
       body: JSON.stringify({
         model,
         messages,
@@ -115,4 +119,3 @@ export class OllamaClient {
     return `${this.baseUrl.replace(/\/+$/, '')}${path}`;
   }
 }
-

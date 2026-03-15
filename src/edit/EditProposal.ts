@@ -4,6 +4,12 @@ import { ChatMessage } from '../ollama/OllamaClient';
 const MAX_EDIT_FILE_CHARS = 40000;
 const MAX_PATCH_OPERATIONS = 8;
 
+export type FailureFixStyle =
+  | 'minimal'
+  | 'validateInput'
+  | 'preserveTypes'
+  | 'noExceptionSwallowing';
+
 export interface EditTarget {
   documentUri: vscode.Uri;
   relativePath: string;
@@ -30,6 +36,7 @@ export interface ParsedEditProposal {
 
 export interface PendingEdit {
   id: string;
+  isNewFile: boolean;
   documentUri: vscode.Uri;
   relativePath: string;
   language: string;
@@ -62,6 +69,51 @@ const LARGE_DELETION_PATTERN =
 
 const FULL_REWRITE_PATTERN =
   /\b(rewrite|refactor entire|replace whole|replace entire|regenerate|rewrite from scratch|full file)\b/i;
+
+const LITERAL_RETURN_PATTERN =
+  /^\s*return\s+(?:-?\d+(?:\.\d+)?|None|null|undefined|true|false|f?(["']).*?\1|`[^`]*`|\[\]|\{\})\s*$/gm;
+
+const PYTHON_EXCEPTION_FALLBACK_PATTERN =
+  /^\s*except[^\n]*:\s*(?:\n[ \t]+(?:return\b|pass\b|continue\b|break\b))/gm;
+
+const JS_EXCEPTION_FALLBACK_PATTERN =
+  /\bcatch\s*\([^)]*\)\s*\{[\s\S]{0,200}?\b(?:return|break|continue)\b/gm;
+
+const PYTHON_VALIDATION_GUARD_PATTERN =
+  /^\s*if\b[^\n]*:\s*(?:\n[ \t]+(?:raise\b|return\b))/gm;
+
+const JS_VALIDATION_GUARD_PATTERN =
+  /\bif\s*\([^)]*\)\s*\{[\s\S]{0,160}?\b(?:throw|return)\b/gm;
+
+export function buildFailureFixStyleContextBlock(style: FailureFixStyle): string {
+  switch (style) {
+    case 'validateInput':
+      return [
+        'Failure-fix policy: prefer input or precondition validation before the failing operation.',
+        'Preserve existing function signatures and return types when possible.',
+        'Do not add broad exception handlers or fallback values unless the instruction explicitly asks for graceful degradation.'
+      ].join(' ');
+    case 'preserveTypes':
+      return [
+        'Failure-fix policy: preserve existing function signatures and return types while fixing the reported issue.',
+        'Do not replace numeric, object, or exception behavior with fallback strings, None/null, booleans, or sentinel values just to silence the failure.',
+        'If handling is required, keep the result shape compatible with existing callers.'
+      ].join(' ');
+    case 'noExceptionSwallowing':
+      return [
+        'Failure-fix policy: do not swallow exceptions or turn them into silent fallback values.',
+        'Prefer validating before the failure or re-raising with clear intent if validation is impossible.',
+        'Avoid broad try/except or try/catch wrappers unless the instruction explicitly asks for graceful degradation.'
+      ].join(' ');
+    case 'minimal':
+    default:
+      return [
+        'Failure-fix policy: prefer the smallest code change that resolves the reported issue.',
+        'Preserve behavior, signatures, imports, and control flow unless the failure explicitly requires changing them.',
+        'Avoid unnecessary refactors, helpers, or fallback behavior.'
+      ].join(' ');
+  }
+}
 
 export function getActiveEditTarget(): EditTarget {
   const editor = vscode.window.activeTextEditor;
@@ -96,7 +148,11 @@ export function getActiveEditTarget(): EditTarget {
   };
 }
 
-export function buildEditProposalMessages(target: EditTarget, prompt: string): ChatMessage[] {
+export function buildEditProposalMessages(
+  target: EditTarget,
+  prompt: string,
+  contextBlocks: Array<string | undefined> = []
+): ChatMessage[] {
   const sections = [
     `Instruction:\n${prompt}`,
     `Target file: ${target.relativePath}`,
@@ -118,7 +174,7 @@ export function buildEditProposalMessages(target: EditTarget, prompt: string): C
     ['<numbered-file>', renderNumberedFile(target.originalText), '</numbered-file>'].join('\n')
   );
 
-  return [
+  const messages: ChatMessage[] = [
     {
       role: 'system',
       content: [
@@ -135,21 +191,36 @@ export function buildEditProposalMessages(target: EditTarget, prompt: string): C
         'If the instruction asks for comments, docstrings, or documentation, add comments/docstrings rather than type annotations.',
         'If no change is needed, return operations: [].'
       ].join(' ')
-    },
-    {
-      role: 'user',
-      content: sections.join('\n\n')
     }
   ];
+
+  for (const contextBlock of contextBlocks) {
+    if (!contextBlock) {
+      continue;
+    }
+
+    messages.push({
+      role: 'system',
+      content: contextBlock
+    });
+  }
+
+  messages.push({
+    role: 'user',
+    content: sections.join('\n\n')
+  });
+
+  return messages;
 }
 
 export function buildEditRepairMessages(
   target: EditTarget,
   prompt: string,
   rawResponse: string,
-  repairReason?: string
+  repairReason?: string,
+  contextBlocks: Array<string | undefined> = []
 ): ChatMessage[] {
-  return [
+  const messages: ChatMessage[] = [
     {
       role: 'system',
       content: [
@@ -161,20 +232,34 @@ export function buildEditRepairMessages(
         'Follow the original instruction literally and do not substitute a different change type.',
         'If comments or docstrings were requested, do not replace them with type annotations.'
       ].join(' ')
-    },
-    {
-      role: 'user',
-      content: [
-        `Instruction:\n${prompt}`,
-        `Target file: ${target.relativePath}`,
-        repairReason ? `Why the previous response was rejected:\n${repairReason}` : undefined,
-        ['<numbered-file>', renderNumberedFile(target.originalText), '</numbered-file>'].join('\n'),
-        ['<previous-response>', rawResponse, '</previous-response>'].join('\n')
-      ]
-        .filter((section): section is string => Boolean(section))
-        .join('\n\n')
     }
   ];
+
+  for (const contextBlock of contextBlocks) {
+    if (!contextBlock) {
+      continue;
+    }
+
+    messages.push({
+      role: 'system',
+      content: contextBlock
+    });
+  }
+
+  messages.push({
+    role: 'user',
+    content: [
+      `Instruction:\n${prompt}`,
+      `Target file: ${target.relativePath}`,
+      repairReason ? `Why the previous response was rejected:\n${repairReason}` : undefined,
+      ['<numbered-file>', renderNumberedFile(target.originalText), '</numbered-file>'].join('\n'),
+      ['<previous-response>', rawResponse, '</previous-response>'].join('\n')
+    ]
+      .filter((section): section is string => Boolean(section))
+      .join('\n\n')
+  });
+
+  return messages;
 }
 
 export function parseEditProposalResponse(
@@ -220,6 +305,7 @@ export function createPendingEdit(
 
   return {
     id: `${Date.now()}`,
+    isNewFile: false,
     documentUri: target.documentUri,
     relativePath: target.relativePath,
     language: target.language,
@@ -231,10 +317,36 @@ export function createPendingEdit(
   };
 }
 
+export function createPendingNewFile(
+  documentUri: vscode.Uri,
+  relativePath: string,
+  language: string,
+  proposedText: string,
+  summary: string
+): PendingEdit {
+  return {
+    id: `${Date.now()}`,
+    isNewFile: true,
+    documentUri,
+    relativePath,
+    language,
+    summary,
+    originalText: '',
+    proposedText,
+    originalVersion: -1,
+    stats: {
+      originalLines: 0,
+      proposedLines: countLines(proposedText),
+      deltaLines: countLines(proposedText)
+    }
+  };
+}
+
 export function validateEditProposal(
   target: EditTarget,
   proposal: ParsedEditProposal,
-  prompt: string
+  prompt: string,
+  failureFixStyle: FailureFixStyle = 'minimal'
 ): string | undefined {
   const operationsError = validateOperations(target.originalText, proposal.operations, prompt);
   if (operationsError) {
@@ -284,6 +396,15 @@ export function validateEditProposal(
     if (addedComments <= 0) {
       return 'The proposal did not add any comment or docstring content.';
     }
+  }
+
+  const failureFixStyleError = validateFailureFixStyle(
+    target.originalText,
+    proposedText,
+    failureFixStyle
+  );
+  if (failureFixStyleError) {
+    return failureFixStyleError;
   }
 
   return undefined;
@@ -633,6 +754,55 @@ function isCommentStyleRequest(prompt: string): boolean {
   return /\b(comment|comments|docstring|docstrings|document|documentation|annotate with comments)\b/i.test(
     prompt
   );
+}
+
+function validateFailureFixStyle(
+  originalText: string,
+  proposedText: string,
+  failureFixStyle: FailureFixStyle
+): string | undefined {
+  if (failureFixStyle === 'minimal') {
+    return undefined;
+  }
+
+  const newLiteralReturns =
+    countPatternMatches(proposedText, LITERAL_RETURN_PATTERN) -
+    countPatternMatches(originalText, LITERAL_RETURN_PATTERN);
+  const newExceptionFallbackHandlers =
+    countPatternMatches(proposedText, PYTHON_EXCEPTION_FALLBACK_PATTERN) +
+    countPatternMatches(proposedText, JS_EXCEPTION_FALLBACK_PATTERN) -
+    countPatternMatches(originalText, PYTHON_EXCEPTION_FALLBACK_PATTERN) -
+    countPatternMatches(originalText, JS_EXCEPTION_FALLBACK_PATTERN);
+  const newValidationGuards =
+    countPatternMatches(proposedText, PYTHON_VALIDATION_GUARD_PATTERN) +
+    countPatternMatches(proposedText, JS_VALIDATION_GUARD_PATTERN) -
+    countPatternMatches(originalText, PYTHON_VALIDATION_GUARD_PATTERN) -
+    countPatternMatches(originalText, JS_VALIDATION_GUARD_PATTERN);
+
+  if (failureFixStyle === 'preserveTypes' && newLiteralReturns > 0) {
+    return 'The proposal appears to change return-value types while fixing the failure. Preserve existing return types instead of returning fallback literals.';
+  }
+
+  if (failureFixStyle === 'noExceptionSwallowing' && newExceptionFallbackHandlers > 0) {
+    return 'The proposal added a new exception handler that swallows the failure with a fallback path. Fix the cause or re-raise instead.';
+  }
+
+  if (
+    failureFixStyle === 'validateInput' &&
+    newExceptionFallbackHandlers > 0 &&
+    newValidationGuards <= 0
+  ) {
+    return 'The proposal handled the failure after the fact with a new exception fallback. Prefer validating inputs or preconditions before the failing operation.';
+  }
+
+  return undefined;
+}
+
+function countPatternMatches(text: string, pattern: RegExp): number {
+  const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+  const matcher = new RegExp(pattern.source, flags);
+  const matches = text.match(matcher);
+  return matches?.length ?? 0;
 }
 
 function countCommentArtifacts(text: string): number {

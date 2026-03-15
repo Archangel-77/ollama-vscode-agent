@@ -8,6 +8,8 @@ const MAX_CONTEXT_FILES = 4;
 const MAX_EXCERPT_CHARS = 1600;
 const MAX_LIST_DISPLAY = 50;
 const MAX_LIST_CANDIDATES = 300;
+const MAX_EDIT_TARGET_FILES = 3;
+const MAX_EDIT_TARGET_CHARS = 40000;
 
 const STOP_WORDS = new Set([
   'about',
@@ -83,6 +85,13 @@ export interface WorkspaceFileListMatch {
   glob: string;
   paths: string[];
   truncated: boolean;
+}
+
+export interface WorkspaceEditCandidate {
+  uri: vscode.Uri;
+  path: string;
+  text: string;
+  matchedQueries: string[];
 }
 
 interface FileHit {
@@ -286,6 +295,86 @@ export async function collectRequestedFileLists(
   return dedupeRequestedLists(results);
 }
 
+export async function collectWorkspaceEditCandidates(
+  prompt: string,
+  options?: {
+    maxFiles?: number;
+    excludePaths?: string[];
+    maxChars?: number;
+  }
+): Promise<WorkspaceEditCandidate[]> {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  if (folders.length === 0) {
+    return [];
+  }
+
+  const queries = extractQueries(prompt);
+  if (queries.length === 0) {
+    return [];
+  }
+
+  const maxFiles = options?.maxFiles ?? MAX_EDIT_TARGET_FILES;
+  const maxChars = options?.maxChars ?? MAX_EDIT_TARGET_CHARS;
+  const excludedPaths = new Set((options?.excludePaths ?? []).map(normalizeWorkspacePath));
+  const fileHits = new Map<string, FileHit & { text: string }>();
+  const candidateFiles = await vscode.workspace.findFiles(
+    '**/*',
+    DEFAULT_EXCLUDE_GLOB,
+    MAX_CANDIDATE_FILES
+  );
+
+  for (const uri of candidateFiles) {
+    const path = vscode.workspace.asRelativePath(uri, false);
+    if (excludedPaths.has(normalizeWorkspacePath(path)) || !isLikelyTextFile(path)) {
+      continue;
+    }
+
+    const text = await readTextFile(uri);
+    if (!text || text.length > maxChars) {
+      continue;
+    }
+
+    const lowerText = text.toLowerCase();
+    const lowerPath = path.toLowerCase();
+    const matchedQueries = queries.filter((query) => {
+      const lowerQuery = query.toLowerCase();
+      return lowerText.includes(lowerQuery) || lowerPath.includes(lowerQuery);
+    });
+
+    if (matchedQueries.length === 0) {
+      continue;
+    }
+
+    fileHits.set(uri.toString(), {
+      uri,
+      path,
+      text,
+      score: scoreFile(path, text, matchedQueries),
+      matchedQueries: new Set<string>(matchedQueries)
+    });
+  }
+
+  return [...fileHits.values()]
+    .sort((left, right) => {
+      if (right.matchedQueries.size !== left.matchedQueries.size) {
+        return right.matchedQueries.size - left.matchedQueries.size;
+      }
+
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      return left.path.localeCompare(right.path);
+    })
+    .slice(0, maxFiles)
+    .map((hit) => ({
+      uri: hit.uri,
+      path: hit.path,
+      text: hit.text,
+      matchedQueries: [...hit.matchedQueries]
+    }));
+}
+
 export function formatWorkspaceFileListReply(matches: WorkspaceFileListMatch[]): string {
   if (matches.length === 0) {
     return 'I did not find matching files in the current workspace.';
@@ -445,6 +534,10 @@ function dedupeRequestedLists(matches: WorkspaceFileListMatch[]): WorkspaceFileL
   }
 
   return [...deduped.values()];
+}
+
+function normalizeWorkspacePath(path: string): string {
+  return path.replace(/\\/g, '/').toLowerCase();
 }
 
 async function readTextFile(uri: vscode.Uri): Promise<string | undefined> {

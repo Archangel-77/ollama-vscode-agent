@@ -8,14 +8,26 @@
     "vscode": "^1.98.0"
   },
   "categories": [
-    "Other"
+    "AI",
+    "Chat"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:localAgent.chat",
+    "onView:localAgent.secondaryChat",
     "onCommand:localAgent.openChat",
+    "onCommand:localAgent.openCommandMenu",
+    "onCommand:localAgent.findInThread",
+    "onCommand:localAgent.implementTodo",
+    "onCommand:localAgent.newThread",
     "onCommand:localAgent.askSelection",
+    "onCommand:localAgent.addSelectionToThread",
     "onCommand:localAgent.askCurrentFile",
-    "onCommand:localAgent.askWorkspace"
+    "onCommand:localAgent.addFileToThread",
+    "onCommand:localAgent.askWorkspace",
+    "onCommand:localAgent.askProblems",
+    "onCommand:localAgent.fixProblems",
+    "onCommand:localAgent.fixLastFailure"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -23,6 +35,13 @@
       "activitybar": [
         {
           "id": "localAgent",
+          "title": "Local Agent",
+          "icon": "media/activity-icon.svg"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "localAgentSecondary",
           "title": "Local Agent",
           "icon": "media/activity-icon.svg"
         }
@@ -35,6 +54,13 @@
           "id": "localAgent.chat",
           "name": "Chat"
         }
+      ],
+      "localAgentSecondary": [
+        {
+          "type": "webview",
+          "id": "localAgent.secondaryChat",
+          "name": "Chat"
+        }
       ]
     },
     "commands": [
@@ -44,8 +70,33 @@
         "category": "Local Agent"
       },
       {
+        "command": "localAgent.openCommandMenu",
+        "title": "Local Agent: Open Command Menu",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.findInThread",
+        "title": "Local Agent: Find In Thread",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.implementTodo",
+        "title": "Implement with Local Agent",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.newThread",
+        "title": "Local Agent: New Thread",
+        "category": "Local Agent"
+      },
+      {
         "command": "localAgent.askSelection",
         "title": "Local Agent: Ask About Selection",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.addSelectionToThread",
+        "title": "Local Agent: Add Selection to Thread",
         "category": "Local Agent"
       },
       {
@@ -54,11 +105,59 @@
         "category": "Local Agent"
       },
       {
+        "command": "localAgent.addFileToThread",
+        "title": "Local Agent: Add File to Thread",
+        "category": "Local Agent"
+      },
+      {
         "command": "localAgent.askWorkspace",
         "title": "Local Agent: Ask About Workspace",
         "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.askProblems",
+        "title": "Local Agent: Ask About Problems",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.fixProblems",
+        "title": "Local Agent: Fix Problems",
+        "category": "Local Agent"
+      },
+      {
+        "command": "localAgent.fixLastFailure",
+        "title": "Local Agent: Fix Last Failure",
+        "category": "Local Agent"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "localAgent.openChat",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "localAgent.addSelectionToThread",
+          "group": "localAgent",
+          "when": "editorHasSelection && resourceScheme == file"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "localAgent.addFileToThread",
+          "group": "navigation",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "localAgent.implementTodo",
+          "when": "false"
+        }
+      ]
+    },
     "configuration": {
       "title": "Local Agent",
       "properties": {
@@ -77,10 +176,55 @@
           "default": "",
           "description": "Preferred Ollama model for edit proposals. Leave empty to auto-pick a stronger coding model for edits."
         },
+        "localAgent.failureFixStyle": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "validateInput",
+            "preserveTypes",
+            "noExceptionSwallowing"
+          ],
+          "default": "preserveTypes",
+          "description": "Preferred repair policy for diagnostics and terminal-failure fixes."
+        },
+        "localAgent.commentCodeLensEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CodeLens above TODO and FIXME comments to implement them with the Local Agent."
+        },
+        "localAgent.followUpQueueMode": {
+          "type": "string",
+          "enum": [
+            "queue",
+            "steer",
+            "interrupt"
+          ],
+          "default": "queue",
+          "description": "Control whether follow-up prompts are queued, replaced, or interrupt the current run."
+        },
         "localAgent.allowTerminal": {
           "type": "boolean",
           "default": true,
           "description": "Allow the Local Agent sidebar to prepare and run integrated terminal commands after explicit approval."
+        },
+        "localAgent.openOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Focus the Local Agent sidebar when the extension finishes starting up."
+        },
+        "localAgent.preferSecondarySidebar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Try to open the Local Agent in the secondary sidebar when supported."
+        },
+        "localAgent.composerEnterBehavior": {
+          "type": "string",
+          "enum": [
+            "enter",
+            "cmdIfMultiline"
+          ],
+          "default": "cmdIfMultiline",
+          "description": "Enter behavior for the Local Agent composer."
         }
       }
     }

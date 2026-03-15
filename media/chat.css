@@ -1,20 +1,102 @@
 :root {
   color-scheme: light dark;
+  --agent-accent: #4c9a73;
+  --agent-accent-soft: rgba(76, 154, 115, 0.18);
+  --agent-panel: color-mix(in srgb, var(--vscode-editor-background) 94%, transparent);
+  --agent-panel-strong: color-mix(in srgb, var(--vscode-sideBar-background) 70%, black 30%);
+  --agent-border: color-mix(in srgb, var(--vscode-panel-border) 78%, transparent);
+  --agent-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
 }
 
 body {
   margin: 0;
-  font-family: var(--vscode-font-family);
   color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
   background:
-    radial-gradient(circle at top, rgba(74, 127, 96, 0.22), transparent 42%),
-    var(--vscode-sideBar-background);
+    radial-gradient(circle at top left, rgba(72, 148, 111, 0.2), transparent 38%),
+    linear-gradient(180deg, color-mix(in srgb, var(--vscode-sideBar-background) 92%, black 8%), var(--vscode-sideBar-background));
 }
 
 .app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
   min-height: 100vh;
+}
+
+.main-panel {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+}
+
+.thread-rail {
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.7rem 0.72rem 0.72rem;
+  border-bottom: 1px solid var(--agent-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--agent-panel-strong) 92%, black 8%), color-mix(in srgb, var(--vscode-sideBar-background) 96%, black 4%));
+}
+
+.thread-rail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.thread-rail-title {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.thread-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
+  gap: 0.42rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+}
+
+.thread-card {
+  text-align: left;
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  min-height: 68px;
+  padding: 0.68rem 0.72rem;
+  border: 1px solid var(--agent-border);
+  border-radius: 14px;
+  color: inherit;
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  cursor: pointer;
+}
+
+.thread-card.active {
+  border-color: color-mix(in srgb, var(--agent-accent) 74%, white 26%);
+  background: color-mix(in srgb, var(--agent-accent-soft) 72%, var(--vscode-editor-background) 28%);
+}
+
+.thread-card-title,
+.thread-card-preview {
+  margin: 0;
+}
+
+.thread-card-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.thread-card-preview {
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 
 .topbar {
@@ -22,219 +104,645 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
-  border-bottom: 1px solid var(--vscode-panel-border);
+  padding: 0.9rem 1rem 0.85rem;
+  border-bottom: 1px solid var(--agent-border);
+  backdrop-filter: blur(12px);
+}
+
+.topbar-main {
+  min-width: 0;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 .eyebrow {
-  margin: 0 0 0.25rem;
-  font-size: 0.75rem;
+  margin: 0 0 0.2rem;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 86%, white 14%);
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.75;
 }
 
 .topbar h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.08rem;
+  line-height: 1.15;
 }
 
 .connection {
-  margin: 0.35rem 0 0;
-  font-size: 0.8rem;
-  line-height: 1.35;
-  opacity: 0.78;
+  margin: 0.3rem 0 0;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, white 10%);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.status,
+.topbar-button {
+  border-radius: 999px;
+  font-size: 0.74rem;
 }
 
 .status {
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: var(--vscode-badge-background);
+  padding: 0.32rem 0.64rem;
   color: var(--vscode-badge-foreground);
-  font-size: 0.75rem;
+  background: color-mix(in srgb, var(--vscode-badge-background) 84%, black 16%);
+}
+
+.topbar-button {
+  border: 1px solid var(--agent-border);
+  padding: 0.42rem 0.8rem;
+  cursor: pointer;
+  color: var(--vscode-button-secondaryForeground);
+  background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 88%, black 12%);
+}
+
+.topbar-button:hover {
+  filter: brightness(1.05);
+}
+
+.find-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--agent-border);
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 92%, black 8%);
+}
+
+.workspace-strip {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--agent-border) 72%, transparent);
+}
+
+.find-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 0.5rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--vscode-input-border, transparent) 90%, transparent);
+  border-radius: 12px;
+  color: var(--vscode-input-foreground);
+  background: color-mix(in srgb, var(--vscode-input-background) 96%, black 4%);
+}
+
+.find-count {
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.find-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .transcript {
   overflow-y: auto;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-}
-
-.context-panel {
-  display: grid;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  padding: 0.9rem 0.9rem 1rem;
 }
 
 .hidden {
   display: none !important;
 }
 
+.context-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 .context-chip {
+  min-width: 0;
   display: grid;
-  gap: 0.18rem;
+  gap: 0.12rem;
+  flex: 1 1 44%;
   text-align: left;
-  padding: 0.8rem 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--vscode-editor-background) 92%, white 8%);
+  padding: 0.58rem 0.72rem;
+  border: 1px solid var(--agent-border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
   color: inherit;
   cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.context-chip:hover {
+  transform: translateY(-1px);
 }
 
 .context-chip.active {
-  border-color: #4f8d69;
-  box-shadow: inset 0 0 0 1px rgba(79, 141, 105, 0.4);
+  border-color: color-mix(in srgb, var(--agent-accent) 74%, white 26%);
+  background: color-mix(in srgb, var(--agent-accent-soft) 72%, var(--vscode-editor-background) 28%);
 }
 
 .context-chip.unavailable {
-  opacity: 0.72;
+  opacity: 0.68;
 }
 
 .context-chip-title {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .context-chip-detail {
-  font-size: 0.75rem;
-  line-height: 1.35;
-  opacity: 0.82;
+  min-width: 0;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, white 10%);
+  font-size: 0.7rem;
+  line-height: 1.32;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .empty-state,
-.message,
 .pending-edit,
-.pending-command {
-  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent);
-  border-radius: 12px;
-  padding: 0.9rem;
-  background: color-mix(in srgb, var(--vscode-editor-background) 92%, white 8%);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+.pending-command,
+.task-history {
+  border: 1px solid var(--agent-border);
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--agent-panel) 96%, white 4%), color-mix(in srgb, var(--agent-panel) 92%, black 8%));
+  box-shadow: var(--agent-shadow);
 }
 
-.empty-state h2,
-.message-role {
-  margin: 0 0 0.35rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+.empty-state h2 {
+  margin: 0 0 0.32rem;
+  font-size: 0.96rem;
 }
 
-.empty-state p,
-.message-text {
+.empty-state p {
   margin: 0;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
   line-height: 1.45;
+}
+
+.message {
+  max-width: 92%;
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.8rem 0.92rem;
+  border-radius: 18px;
+  border: 1px solid var(--agent-border);
+  box-shadow: var(--agent-shadow);
+}
+
+.message.user {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--agent-accent) 62%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--agent-accent-soft) 92%, black 8%), color-mix(in srgb, var(--agent-accent-soft) 80%, var(--vscode-editor-background) 20%));
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--agent-panel) 98%, white 2%), color-mix(in srgb, var(--agent-panel) 92%, black 8%));
+}
+
+.message.assistant.streaming {
+  border-color: color-mix(in srgb, var(--agent-accent) 48%, transparent);
+}
+
+.message.system {
+  align-self: stretch;
+  max-width: 100%;
+  gap: 0.18rem;
+  padding: 0.62rem 0.78rem;
+  border-radius: 14px;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 80%, transparent);
+  box-shadow: none;
+}
+
+.message.search-hit {
+  border-color: color-mix(in srgb, var(--agent-accent) 40%, var(--agent-border) 60%);
+}
+
+.message.search-hit-current {
+  border-color: color-mix(in srgb, var(--agent-accent) 85%, white 15%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--agent-accent) 42%, transparent), var(--agent-shadow);
+}
+
+.message-role {
+  margin: 0;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.message-text {
+  display: grid;
+  gap: 0.62rem;
+  line-height: 1.55;
+  min-width: 0;
+}
+
+.message-paragraph,
+.pending-edit-summary,
+.pending-edit-stats,
+.pending-command-cwd {
+  margin: 0;
+}
+
+.message-paragraph {
   white-space: pre-wrap;
 }
 
+.message-inline-code {
+  padding: 0.08rem 0.34rem;
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--vscode-textPreformat-foreground, var(--vscode-foreground)) 96%, white 4%);
+  background: color-mix(in srgb, var(--vscode-textBlockQuote-background, var(--vscode-editor-background)) 75%, black 25%);
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+  font-size: 0.92em;
+}
+
+.message-code,
+.pending-command-text {
+  position: relative;
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--agent-border) 88%, black 12%);
+  border-radius: 14px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: color-mix(in srgb, var(--vscode-editor-background) 82%, black 18%);
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.message-code[data-language]::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.48rem;
+  right: 0.7rem;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.message-code code {
+  display: block;
+  padding-top: 0.1rem;
+}
+
+.message-list,
+.message-quote {
+  margin: 0;
+}
+
+.message-list {
+  padding-left: 1.2rem;
+  line-height: 1.55;
+}
+
+.message-quote {
+  padding-left: 0.85rem;
+  border-left: 3px solid color-mix(in srgb, var(--agent-accent) 60%, transparent);
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, white 10%);
+}
+
 .pending-edit,
-.pending-command {
+.pending-command,
+.task-history {
   display: grid;
   gap: 0.55rem;
 }
 
 .pending-edit-header {
   display: grid;
-  gap: 0.18rem;
+  gap: 0.14rem;
 }
 
 .pending-edit-eyebrow {
   margin: 0;
-  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, white 10%);
+  font-size: 0.68rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.72;
 }
 
 .pending-edit-path {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.35;
 }
 
-.pending-edit-summary,
-.pending-edit-stats {
-  margin: 0;
-  line-height: 1.45;
+.pending-edit-summary {
+  font-size: 0.84rem;
+  line-height: 1.48;
 }
 
-.pending-command-text {
+.pending-edit-stats,
+.pending-command-cwd,
+.pending-edit-file-stats {
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.pending-edit-files {
+  display: grid;
+  gap: 0.52rem;
+}
+
+.pending-edit-file-actions,
+.task-card-target-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.task-history-list {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.task-card {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.76rem 0.8rem;
+  border: 1px solid var(--agent-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 86%, black 14%);
+}
+
+.task-card.pending,
+.task-card.queued,
+.task-card.running {
+  border-color: color-mix(in srgb, var(--agent-accent) 58%, transparent);
+}
+
+.task-card.failed {
+  border-color: color-mix(in srgb, var(--vscode-errorForeground, #d16969) 58%, transparent);
+}
+
+.task-card.succeeded,
+.task-card.applied {
+  border-color: color-mix(in srgb, var(--agent-accent) 72%, transparent);
+}
+
+.task-card.rejected {
+  opacity: 0.84;
+}
+
+.task-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.task-card-badge,
+.task-card-time,
+.task-card-title,
+.task-card-detail,
+.task-card-targets,
+.task-card-command {
   margin: 0;
-  padding: 0.7rem 0.8rem;
-  border-radius: 10px;
+}
+
+.task-card-badge,
+.task-card-time,
+.task-card-targets {
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, white 12%);
+  font-size: 0.71rem;
+  line-height: 1.4;
+}
+
+.task-card-badge {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.task-card-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.42;
+}
+
+.task-card-target-list {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.task-card-target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.task-card-detail {
+  font-size: 0.79rem;
+  line-height: 1.48;
+}
+
+.task-card-command {
+  padding: 0.55rem 0.68rem;
+  border: 1px solid color-mix(in srgb, var(--agent-border) 86%, black 14%);
+  border-radius: 12px;
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
-  font-size: 0.85rem;
-  line-height: 1.45;
   background: color-mix(in srgb, var(--vscode-editor-background) 82%, black 18%);
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
-.pending-edit-stats {
-  font-size: 0.8rem;
-  opacity: 0.8;
+.pending-edit-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--agent-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 85%, black 15%);
+}
+
+.pending-edit-file-meta {
+  min-width: 0;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.pending-edit-file-path {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .pending-edit-actions,
 .composer-actions {
   display: flex;
-  gap: 0.55rem;
-  justify-content: flex-end;
   flex-wrap: wrap;
+  gap: 0.48rem;
+}
+
+.pending-edit-actions {
+  justify-content: flex-end;
 }
 
 .composer {
   display: grid;
-  gap: 0.6rem;
-  padding: 1rem;
-  border-top: 1px solid var(--vscode-panel-border);
-  background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, black 12%);
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem 1rem;
+  border-top: 1px solid var(--agent-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vscode-sideBar-background) 70%, transparent), color-mix(in srgb, var(--vscode-sideBar-background) 92%, black 8%) 34%);
 }
 
-.composer-label {
-  font-size: 0.8rem;
+.action-dock {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--agent-border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--agent-panel) 95%, white 5%), color-mix(in srgb, var(--agent-panel) 90%, black 10%));
+  box-shadow: var(--agent-shadow);
+}
+
+.action-dock-copy {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.action-dock-title {
+  margin: 0;
+  font-size: 0.86rem;
   font-weight: 600;
+  line-height: 1.4;
+}
+
+.action-dock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.48rem;
+  justify-content: flex-end;
 }
 
 .composer textarea {
   width: 100%;
-  resize: vertical;
+  min-height: 7.25rem;
+  max-height: 17.5rem;
+  resize: none;
   box-sizing: border-box;
-  padding: 0.75rem;
-  border: 1px solid var(--vscode-input-border, transparent);
-  border-radius: 10px;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--vscode-input-border, transparent) 90%, transparent);
+  border-radius: 18px;
   color: var(--vscode-input-foreground);
-  background: var(--vscode-input-background);
+  background: color-mix(in srgb, var(--vscode-input-background) 96%, black 4%);
+  line-height: 1.48;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.composer-footer {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.composer-hint {
+  margin: 0;
+  color: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, white 10%);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .composer button,
-.pending-edit-actions button {
-  justify-self: end;
-  border: 0;
+.pending-edit-actions button,
+.pending-edit-file-preview,
+.action-dock-actions button,
+.task-card-target-button {
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 0.55rem 0.95rem;
+  padding: 0.54rem 0.92rem;
   cursor: pointer;
-  color: var(--vscode-button-foreground);
-  background: linear-gradient(135deg, #2f6f57, #4f8d69);
+  font-size: 0.77rem;
+  font-weight: 600;
 }
 
-.composer button:hover,
-.pending-edit-actions button:hover {
-  filter: brightness(1.06);
+.composer button,
+.pending-edit-actions button,
+.action-dock-actions button,
+.task-card-target-button {
+  color: var(--vscode-button-foreground);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--agent-accent) 80%, black 20%), color-mix(in srgb, var(--agent-accent) 92%, white 8%));
 }
 
 .composer button.subtle,
-.pending-edit-actions button.subtle {
-  background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 88%, black 12%);
+.pending-edit-actions button.subtle,
+.pending-edit-file-preview.subtle,
+.action-dock-actions button.subtle,
+.task-card-target-button.subtle {
+  border-color: var(--agent-border);
   color: var(--vscode-button-secondaryForeground);
+  background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 88%, black 12%);
+}
+
+.composer button:hover,
+.pending-edit-actions button:hover,
+.pending-edit-file-preview:hover,
+.action-dock-actions button:hover,
+.task-card-target-button:hover,
+.topbar-button:hover {
+  filter: brightness(1.06);
 }
 
 .composer button:disabled,
+.topbar-button:disabled,
 .composer textarea:disabled,
 .context-chip:disabled,
-.pending-edit-actions button:disabled {
-  opacity: 0.65;
+.pending-edit-actions button:disabled,
+.pending-edit-file-preview:disabled,
+.pending-command button:disabled,
+.action-dock-actions button:disabled,
+.task-card-target-button:disabled,
+.thread-card:disabled {
+  opacity: 0.64;
   cursor: not-allowed;
+}
+
+@media (min-width: 860px) {
+  .app {
+    grid-template-columns: minmax(180px, 28%) 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .thread-rail {
+    grid-template-rows: auto 1fr;
+    padding: 0.8rem 0.72rem 0.9rem;
+    border-right: 1px solid var(--agent-border);
+    border-bottom: 0;
+  }
+
+  .thread-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
